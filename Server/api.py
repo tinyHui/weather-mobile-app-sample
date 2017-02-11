@@ -15,7 +15,7 @@ class Weather(Resource):
             return {
                 "temperature": weather.get_temp(),
                 "description": weather.get_description(),
-                "place": weather.get_place(),
+                "location": weather.get_location(),
                 "icon": weather.get_icon()
             }
         except ConnectionError:

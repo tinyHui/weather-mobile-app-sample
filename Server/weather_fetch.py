@@ -42,7 +42,7 @@ class WeatherRes:
     def get_description(self):
         return self.res["weather"][0]["description"]
 
-    def get_place(self):
+    def get_location(self):
         city = self.res["name"]
         country = self.res["sys"]["country"]
         return "%s, %s" % (city, country)
