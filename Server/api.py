@@ -1,17 +1,17 @@
-from flask import Flask
-from flask_restful import Resource, Api, abort
+from flask import Flask, send_file
+from flask_restful import Resource, Api, abort, reqparse
 import os
 
-from weather_fetch import get_weather
+from weather_fetch import get_weather_via_city, get_weather_via_geo
 
 app = Flask(__name__)
 api = Api(app)
 
 
-class Weather(Resource):
+class CityWeather(Resource):
     def get(self, city):
         try:
-            weather = get_weather(city)
+            weather = get_weather_via_city(city)
             return {
                 "temperature": weather.get_temp(),
                 "description": weather.get_description(),
@@ -19,9 +19,30 @@ class Weather(Resource):
                 "icon": weather.get_icon()
             }
         except ConnectionError:
-            abort(503, "not able to get weather for %s" % city)
+            abort(400)
 
-api.add_resource(Weather, '/weather/<string:city>')
+class GeoWeather(Resource):
+    def get(self):
+        lat = None
+        lon = None
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('lat', type=float, help='Latitude')
+            parser.add_argument('lon', type=float, help='Longitude')
+            args = parser.parse_args()
+            lat, lon = args['lat'], args['lon']
+            weather = get_weather_via_geo(lat, lon)
+            return {
+                "temperature": weather.get_temp(),
+                "description": weather.get_description(),
+                "location": weather.get_location(),
+                "icon": weather.get_icon()
+            }
+        except ConnectionError:
+            abort(400)
+
+api.add_resource(CityWeather, '/city/<string:city>')
+api.add_resource(GeoWeather, '/geo/')
 
 if __name__ == '__main__':
     ENV = None
