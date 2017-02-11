@@ -6,8 +6,13 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Alert
 } from 'react-native';
+const dismissKeyboard = require('dismissKeyboard');
+const DeviceUUID = require("react-native-device-uuid");
 
 export default class WeatherMobileApp extends Component {
   constructor(props) {
@@ -18,15 +23,13 @@ export default class WeatherMobileApp extends Component {
         temperature: "0",
         location: "",
         description: "",
-        city: "london"
+        city: "",
+        geoPos: {}
       };
-
-      this.getWeather();
     }
 
-  getWeather() {
-    console.log(this);
-    fetch(`http://localhost:5000/weather/${this.state.city}`)
+  getWeatherViaCity() {
+    fetch(`http://localhost:5000/city/${this.state.city}`)
     .then(
       res => res.json()
     ).then(
@@ -36,32 +39,76 @@ export default class WeatherMobileApp extends Component {
         location: res.location,
         description: res.description
       })
+    ).catch(
+      error => Alert.alert("Error", "Network fail")
     )
+  }
+
+  getWeatherViaGeo() {
+    fetch(`http://localhost:5000/geo?lat=${this.state.geoPos.lat}&lon=${this.state.geoPos.lon}`)
+    .then(
+      res => res.json()
+    ).then(
+      res => this.setState({
+        icon: res.icon,
+        temperature: res.temperature,
+        location: res.location,
+        description: res.description
+      })
+    ).catch(
+      error => Alert.alert("Error", "Network fail")
+    )
+  }
+
+  componentDidMount() {
+    this.getGeo();
+  }
+
+  getGeo() {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        this.setState({
+            geoPos: {
+              lat: position.coords.latitude,
+              lon: position.coords.longitude
+            }
+        });
+        this.getWeatherViaGeo();
+      },
+      (error) => Alert.alert("Unable to get geolocation", error.message),
+      {enableHighAccuracy: true, timeout: 20000, maximumAge: 1000}
+    );
   }
 
   render() {
     return (
-      <View style={styles.container}>
-        <Text style={styles.icon}>
-          {this.state.icon}
-        </Text>
-        <Text style={styles.temperature}>
-          {this.state.temperature} °C
-        </Text>
-        <Text style={styles.location}>
-          {this.state.location}
-        </Text>
-        <Text style={styles.description}>
-          {this.state.description}
-        </Text>
-        <TextInput style={styles.input}
-                   onChangeText={evt => this._onChangeText(evt)}
-                   onSubmitEditing={_ => this.getWeather()}
-                   clearButtonMode={"always"}
-                   clearTextOnFocus={true}
-                   enablesReturnKeyAutomatically={true}
-                   returnKeyType={"search"}/>
-      </View>
+      <KeyboardAvoidingView style={styles.outerContainer}
+        behavior="padding">
+        <TouchableWithoutFeedback onPress={_ => dismissKeyboard()}>
+          <View style={styles.innerContainer}>
+            <Text style={styles.icon}>
+              {this.state.icon}
+            </Text>
+            <Text style={styles.temperature}>
+              {this.state.temperature} °C
+            </Text>
+            <Text style={styles.location}>
+              {this.state.location}
+            </Text>
+            <Text style={styles.description}>
+              {this.state.description}
+            </Text>
+            <TextInput style={styles.input}
+              placeholder="City"
+              onChangeText={evt => this._onChangeText(evt)}
+              onSubmitEditing={_ => this.getWeatherViaCity()}
+              clearButtonMode={"always"}
+              clearTextOnFocus={true}
+              enablesReturnKeyAutomatically={true}
+              returnKeyType={"search"}/>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -73,11 +120,13 @@ export default class WeatherMobileApp extends Component {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     flex: 1,
+    justifyContent: 'center'
+  },
+  innerContainer: {
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
+    alignItems: 'center'
   },
   temperature: {
     fontSize: 62,
