@@ -23,12 +23,10 @@ class CityWeather(Resource):
 
 class GeoWeather(Resource):
     def get(self):
-        lat = None
-        lon = None
         try:
             parser = reqparse.RequestParser()
-            parser.add_argument('lat', type=float, help='Latitude')
-            parser.add_argument('lon', type=float, help='Longitude')
+            parser.add_argument('lat', required=True, type=float, help='Latitude required')
+            parser.add_argument('lon', required=True, type=float, help='Longitude required')
             args = parser.parse_args()
             lat, lon = args['lat'], args['lon']
             weather = get_weather_via_geo(lat, lon)

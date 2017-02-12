@@ -58,7 +58,6 @@ def get_weather_via_city(city):
 def get_weather_via_geo(lat, lon):
     q = {"lat":lat,"lon":lon,"units":"metric","appid":APP_ID}
     res = requests.get(URL, params=q)
-    print(res.url)
     if res.status_code != 200:
         raise ConnectionError("Not able to get weather data from openweathermap.org")
 
