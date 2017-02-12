@@ -7,12 +7,13 @@ import {
   Text,
   TextInput,
   View,
+  ListView,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Alert
 } from 'react-native';
 const dismissKeyboard = require('dismissKeyboard');
-const DeviceUUID = require("react-native-device-uuid");
+const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
 
 export default class WeatherMobileApp extends Component {
   constructor(props) {
@@ -24,7 +25,8 @@ export default class WeatherMobileApp extends Component {
         location: "",
         description: "",
         city: "",
-        geoPos: {}
+        geoPos: {},
+        historyLocations: []
       };
     }
 
@@ -39,6 +41,8 @@ export default class WeatherMobileApp extends Component {
         location: res.location,
         description: res.description
       })
+    ).then(
+      _ => this.appendLocationHistory()
     ).catch(
       error => Alert.alert("Error", "Network fail")
     )
@@ -55,12 +59,28 @@ export default class WeatherMobileApp extends Component {
         location: res.location,
         description: res.description
       })
+    ).then(
+      _ => this.appendLocationHistory()
     ).catch(
       error => Alert.alert("Error", "Network fail")
     )
   }
 
-  componentDidMount() {
+  appendLocationHistory() {
+    if (this.state.locatin === "" ||
+        typeof(this.state.location) === "undefined") {
+      return;
+    }
+    let historyLocations = this.state.historyLocations;
+    if (historyLocations.indexOf(this.state.location) !== -1) {
+      return;
+    }
+    historyLocations.push(this.state.location);
+    this.setState({historyLocations: historyLocations})
+    this.forceUpdate();
+  }
+
+  componentWillMount() {
     this.getGeo();
   }
 
@@ -106,6 +126,8 @@ export default class WeatherMobileApp extends Component {
               clearTextOnFocus={true}
               enablesReturnKeyAutomatically={true}
               returnKeyType={"search"}/>
+            <ListView dataSource={ds.cloneWithRows(this.state.historyLocations)}
+                      renderRow={rowData => <Text onPress={_ => this._onPressHistory(rowData)}>{rowData}</Text>}/>
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -116,6 +138,18 @@ export default class WeatherMobileApp extends Component {
     this.setState({
       city: e
     })
+  }
+
+  _onPressHistory(location) {
+    return new Promise(
+      (res, rej) => {
+        res(this.setState({
+          city: location
+        }))
+      }
+    ).then(
+      _ => this.getWeatherViaCity()
+    )
   }
 }
 
